@@ -51,7 +51,6 @@ var (
 	NotLeaderError = errors.New(NotLeader)
 )
 
-
 // RandNodeID returns a random node id
 func RandNodeID(n int) string {
 	letters := []rune("abcdefghijklmnopqrstuvwxyz0123456789")

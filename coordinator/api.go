@@ -48,10 +48,12 @@ func (c *Coordinator) Get(key string) (int64, error) {
 			fmt.Println(addr)
 			err = client.Call(CohortProcessCommands, cmd, &response)
 			fmt.Println("12", response, err, cmd)
+			fmt.Println("13", errors.As(err, &tcpErr))
+			fmt.Println("14", errors.Is(err, common.NotLeaderError))
 		} else {
 			fmt.Println("Here", client, addr, err)
 		}
-		if errors.As(err, &tcpErr) || errors.Is(err, common.NotLeaderError) {
+		if errors.As(err, &tcpErr) || err.Error() == common.NotLeader {
 			fmt.Println("there", client, response)
 			c.log.Info("Leader Table outdated")
 			addr, err = c.updateLeaderTable(key)
