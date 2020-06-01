@@ -31,6 +31,8 @@ type Coordinator struct {
 	// If time permits, these can be auto-discovered.
 	ShardToPeers map[int64][]string
 
+	shardLeaderTable map[int64]string
+
 	Client *rpc.Client
 	log    *log.Entry
 }
@@ -63,6 +65,7 @@ func NewCoordinator(logger *log.Logger, nodeID, raftDir, raftAddress string, ena
 		RaftDir:     raftDir,
 
 		ShardToPeers: shardToPeers,
+		shardLeaderTable: make(map[int64]string),
 		txMap:        make(map[string]*raftpb.GlobalTransaction),
 		log:          log,
 	}
@@ -118,6 +121,5 @@ func (c *Coordinator) Replicate(key, op string, gt *raftpb.GlobalTransaction) er
 
 // IsLeader return if coordinator is leader of cluster.
 func (c *Coordinator) IsLeader() bool {
-
 	return c.raft.State() == raft.Leader
 }

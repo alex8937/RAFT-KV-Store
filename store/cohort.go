@@ -60,6 +60,9 @@ func (c *Cohort) ProcessCommands(raftCommand *raftpb.RaftCommand, reply *raftpb.
 	command := raftCommand.Commands[0]
 	switch command.Method {
 	case common.GET:
+		if err := c.CheckLeader(reply); err != nil {
+			return err
+		}
 		if val, ok, err := c.store.kv.Get(command.Key); ok && err == nil {
 			*reply = raftpb.RPCResponse{
 				Status: 0,
@@ -67,14 +70,8 @@ func (c *Cohort) ProcessCommands(raftCommand *raftpb.RaftCommand, reply *raftpb.
 			}
 			return nil
 		} else if !ok {
-			*reply = raftpb.RPCResponse{
-				Status: -1,
-			}
 			return fmt.Errorf("Key=%s does not exist", command.Key)
 		} else {
-			*reply = raftpb.RPCResponse{
-				Status: -1,
-			}
 			return err
 		}
 	case common.LEADER:
@@ -83,15 +80,14 @@ func (c *Cohort) ProcessCommands(raftCommand *raftpb.RaftCommand, reply *raftpb.
 				Status: 0,
 				Addr:   c.store.rpcAddress,
 			}
-		} else {
-			*reply = raftpb.RPCResponse{
-				Status: -1,
-			}
 		}
 		return nil
 	}
 
 	// Only Set and Del is apply to fsm
+	if err := c.CheckLeader(reply); err != nil {
+		return err
+	}
 	b, err := proto.Marshal(raftCommand)
 	if err != nil {
 		return err
@@ -99,9 +95,6 @@ func (c *Cohort) ProcessCommands(raftCommand *raftpb.RaftCommand, reply *raftpb.
 
 	applyFuture := c.store.raft.Apply(b, common.RaftTimeout)
 	if err := applyFuture.Error(); err != nil {
-		*reply = raftpb.RPCResponse{
-			Status: -1,
-		}
 		return err
 	}
 
@@ -116,6 +109,9 @@ func (c *Cohort) ProcessCommands(raftCommand *raftpb.RaftCommand, reply *raftpb.
 
 // ProcessTransactionMessages processes prepare/commit messages from the coordinator.
 func (c *Cohort) ProcessTransactionMessages(ops *raftpb.ShardOps, reply *raftpb.RPCResponse) error {
+	if err := c.CheckLeader(reply); err != nil {
+		return err
+	}
 	c.store.log.Infof("Processing Transaction message :%v :%v", ops.Phase, ops.Cmds)
 	switch ops.Phase {
 	case common.Prepare:
@@ -130,10 +126,6 @@ func (c *Cohort) ProcessTransactionMessages(ops *raftpb.ShardOps, reply *raftpb.
 
 		if err := c.store.kv.TryLocks(ops.Cmds.Commands); err != nil {
 			// If it fails to get some of the lock, prepare should return "No"
-			*reply = raftpb.RPCResponse{
-				Status: -1,
-				Phase:  common.NotPrepared,
-			}
 			// no need to update cohort state machine, it is equivalent to a no transaction.
 			return err
 		}
@@ -212,6 +204,9 @@ func (c *Cohort) ProcessReadOnly(ops *raftpb.ShardOps, reply *raftpb.RPCResponse
 	return nil
 }
 
+func (c *Cohort) isLeader() bool {
+	return c.store.raft.State() != raft.Leader
+}
 
 // ProcessJoin processes join message.
 // TODO: Use this to join cohort raft as well.

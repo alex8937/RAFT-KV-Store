@@ -36,6 +36,8 @@ const (
 	Invalid     = "Invalid"
 	Abort       = "Abort"
 
+	NotLeader = "Not a leader"
+
 	RetainSnapshotCount = 2
 	RaftTimeout         = 10 * time.Second
 	NodeIDLen           = 5

@@ -1,7 +1,9 @@
 package coordinator
 
 import (
+	"errors"
 	"fmt"
+	"net"
 	"net/rpc"
 
 	"github.com/hashicorp/raft"
@@ -26,18 +28,36 @@ func (c *Coordinator) Get(key string) (int64, error) {
 		},
 	}
 
-	// Figure out
-	addr, _, err := c.FindLeader(key)
+	// read leader from cache
+	addr, err := c.findLeaderFromCache(key)
 	if err != nil {
 		return 0, err
 	}
 
-	client, err := rpc.DialHTTP("tcp", addr)
-	if err != nil {
-		return 0, err
+	var client *rpc.Client
+	var retries int
+	var tcpErr *net.OpError
+	for retries < maxFindLeaderRetries {
+		retries++
+		if client, err = rpc.DialHTTP("tcp", addr); err == nil {
+			fmt.Println(addr)
+			err = client.Call("Cohort.ProcessCommands", cmd, &response)
+			fmt.Println("12", response, err, cmd)
+		} else {
+			fmt.Println("Here", client, addr, err)
+		}
+		if errors.As(err, &tcpErr) || response.Phase == common.NotLeader {
+			fmt.Println("there", client, response)
+			c.log.Info("Leader Table outdated")
+			addr, err = c.updateLeaderTable(key)
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			fmt.Println(err, response)
+			break
+		}
 	}
-
-	err = client.Call("Cohort.ProcessCommands", cmd, &response)
 
 	return response.Value, err
 
@@ -57,19 +77,29 @@ func (c *Coordinator) Set(key string, value int64) error {
 			},
 		},
 	}
-	// Figure out
-	addr, _, err := c.FindLeader(key)
+
+	addr, err := c.findLeaderFromCache(key)
 	if err != nil {
 		return err
 	}
-
-	client, err := rpc.DialHTTP("tcp", addr)
-	if err != nil {
-		return fmt.Errorf("Unable to reach shard at :%s", addr)
+	var client *rpc.Client
+	var retries int
+	for retries < maxFindLeaderRetries {
+		client, err = rpc.DialHTTP("tcp", addr)
+		if err != nil {
+			return err
+		}
+		err = client.Call("Cohort.ProcessCommands", cmd, &response)
+		if response.Phase != common.NotLeader{
+			break
+		}
+		retries++
+		addr, err = c.updateLeaderTable(key)
+		if err != nil {
+			return err
+		}
 	}
-
-	return client.Call("Cohort.ProcessCommands", cmd, &response)
-
+	return err
 }
 
 // Delete deletes the given key.
@@ -86,18 +116,28 @@ func (c *Coordinator) Delete(key string) error {
 		},
 	}
 
-	// Figure out
-	addr, _, err := c.FindLeader(key)
+	addr, err := c.findLeaderFromCache(key)
 	if err != nil {
 		return err
 	}
-
-	client, err := rpc.DialHTTP("tcp", addr)
-	if err != nil {
-		return err
+	var client *rpc.Client
+	var retries int
+	for retries < maxFindLeaderRetries {
+		client, err = rpc.DialHTTP("tcp", addr)
+		if err != nil {
+			return err
+		}
+		err = client.Call("Cohort.ProcessCommands", cmd, &response)
+		if response.Phase != common.NotLeader{
+			break
+		}
+		retries++
+		addr, err = c.updateLeaderTable(key)
+		if err != nil {
+			return err
+		}
 	}
-
-	return client.Call("Cohort.ProcessCommands", cmd, &response)
+	return err
 
 }
 
