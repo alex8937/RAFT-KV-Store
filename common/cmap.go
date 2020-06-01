@@ -282,7 +282,6 @@ func (c *Cmap) AbortWithLocks(ops []*raftpb.Command, txid string) {
 			// delete key is temp when aborting
 			delete(c.Map, op.Key)
 		}
-		//val.mu.TryLockTimeout(LongTimeOut)
 		val.mu.Unlock()
 		c.log.Infof("txid %s UNLOCK when trying to abort %v", txid, ops)
 	}
