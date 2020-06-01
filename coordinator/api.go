@@ -12,6 +12,11 @@ import (
 	"github.com/rs/xid"
 )
 
+const (
+	CohortProcessCommands = "Cohort.ProcessCommands"
+
+)
+
 // TODO: Separate out the common code into a function
 
 // Get returns the value for the given key.
@@ -41,12 +46,12 @@ func (c *Coordinator) Get(key string) (int64, error) {
 		retries++
 		if client, err = rpc.DialHTTP("tcp", addr); err == nil {
 			fmt.Println(addr)
-			err = client.Call("Cohort.ProcessCommands", cmd, &response)
+			err = client.Call(CohortProcessCommands, cmd, &response)
 			fmt.Println("12", response, err, cmd)
 		} else {
 			fmt.Println("Here", client, addr, err)
 		}
-		if errors.As(err, &tcpErr) || response.Phase == common.NotLeader {
+		if errors.As(err, &tcpErr) || errors.Is(err, common.NotLeaderError) {
 			fmt.Println("there", client, response)
 			c.log.Info("Leader Table outdated")
 			addr, err = c.updateLeaderTable(key)

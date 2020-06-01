@@ -60,8 +60,8 @@ func (c *Cohort) ProcessCommands(raftCommand *raftpb.RaftCommand, reply *raftpb.
 	command := raftCommand.Commands[0]
 	switch command.Method {
 	case common.GET:
-		if err := c.CheckLeader(reply); err != nil {
-			return err
+		if !c.isLeader() {
+			return common.NotLeaderError
 		}
 		if val, ok, err := c.store.kv.Get(command.Key); ok && err == nil {
 			*reply = raftpb.RPCResponse{
@@ -85,8 +85,8 @@ func (c *Cohort) ProcessCommands(raftCommand *raftpb.RaftCommand, reply *raftpb.
 	}
 
 	// Only Set and Del is apply to fsm
-	if err := c.CheckLeader(reply); err != nil {
-		return err
+	if !c.isLeader() {
+		return common.NotLeaderError
 	}
 	b, err := proto.Marshal(raftCommand)
 	if err != nil {
@@ -109,8 +109,8 @@ func (c *Cohort) ProcessCommands(raftCommand *raftpb.RaftCommand, reply *raftpb.
 
 // ProcessTransactionMessages processes prepare/commit messages from the coordinator.
 func (c *Cohort) ProcessTransactionMessages(ops *raftpb.ShardOps, reply *raftpb.RPCResponse) error {
-	if err := c.CheckLeader(reply); err != nil {
-		return err
+	if !c.isLeader() {
+		return common.NotLeaderError
 	}
 	c.store.log.Infof("Processing Transaction message :%v :%v", ops.Phase, ops.Cmds)
 	switch ops.Phase {

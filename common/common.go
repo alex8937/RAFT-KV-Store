@@ -1,6 +1,7 @@
 package common
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -36,7 +37,7 @@ const (
 	Invalid     = "Invalid"
 	Abort       = "Abort"
 
-	NotLeader = "Not a leader"
+	NotLeader = "not a leader"
 
 	RetainSnapshotCount = 2
 	RaftTimeout         = 10 * time.Second
@@ -46,7 +47,10 @@ const (
 var (
 	SnapshotThreshold int
 	SnapshotInterval  int
+
+	NotLeaderError = errors.New(NotLeader)
 )
+
 
 // RandNodeID returns a random node id
 func RandNodeID(n int) string {
