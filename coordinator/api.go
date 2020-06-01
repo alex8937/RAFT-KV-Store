@@ -12,11 +12,6 @@ import (
 	"github.com/rs/xid"
 )
 
-const (
-	CohortProcessCommands = "Cohort.ProcessCommands"
-
-)
-
 // TODO: Separate out the common code into a function
 
 // Get returns the value for the given key.
@@ -34,34 +29,31 @@ func (c *Coordinator) Get(key string) (int64, error) {
 	}
 
 	// read leader from cache
-	addr, err := c.findLeaderFromCache(key)
-	if err != nil {
-		return 0, err
+	var err error
+	addr, ok := c.findLeaderFromCache(key)
+	if !ok {
+		if err = c.updateLeaderTable(key); err != nil {
+			return 0, err
+		}
 	}
 
 	var client *rpc.Client
 	var retries int
 	var tcpErr *net.OpError
 	for retries < maxFindLeaderRetries {
+		addr, _ = c.findLeaderFromCache(key)
 		retries++
+		c.log.Info("retries ", retries)
 		if client, err = rpc.DialHTTP("tcp", addr); err == nil {
-			fmt.Println(addr)
-			err = client.Call(CohortProcessCommands, cmd, &response)
-			fmt.Println("12", response, err, cmd)
-			fmt.Println("13", errors.As(err, &tcpErr))
-			fmt.Println("14", errors.Is(err, common.NotLeaderError))
-		} else {
-			fmt.Println("Here", client, addr, err)
+			err = client.Call("Cohort.ProcessCommands", cmd, &response)
 		}
+
 		if errors.As(err, &tcpErr) || err.Error() == common.NotLeader {
-			fmt.Println("there", client, response)
 			c.log.Info("Leader Table outdated")
-			addr, err = c.updateLeaderTable(key)
-			if err != nil {
+			if err = c.updateLeaderTable(key); err != nil {
 				return 0, err
 			}
 		} else {
-			fmt.Println(err, response)
 			break
 		}
 	}
@@ -69,83 +61,83 @@ func (c *Coordinator) Get(key string) (int64, error) {
 	return response.Value, err
 
 }
-
-// Set sets the value for the given key.
+//
+//// Set sets the value for the given key.
 func (c *Coordinator) Set(key string, value int64) error {
-
-	c.log.Infof("Processing Set request: Key=%s Value=%d", key, value)
-	var response raftpb.RPCResponse
-	cmd := &raftpb.RaftCommand{
-		Commands: []*raftpb.Command{
-			{
-				Method: common.SET,
-				Key:    key,
-				Value:  value,
-			},
-		},
-	}
-
-	addr, err := c.findLeaderFromCache(key)
-	if err != nil {
-		return err
-	}
-	var client *rpc.Client
-	var retries int
-	for retries < maxFindLeaderRetries {
-		client, err = rpc.DialHTTP("tcp", addr)
-		if err != nil {
-			return err
-		}
-		err = client.Call("Cohort.ProcessCommands", cmd, &response)
-		if response.Phase != common.NotLeader{
-			break
-		}
-		retries++
-		addr, err = c.updateLeaderTable(key)
-		if err != nil {
-			return err
-		}
-	}
-	return err
+	return nil
+//	c.log.Infof("Processing Set request: Key=%s Value=%d", key, value)
+//	var response raftpb.RPCResponse
+//	cmd := &raftpb.RaftCommand{
+//		Commands: []*raftpb.Command{
+//			{
+//				Method: common.SET,
+//				Key:    key,
+//				Value:  value,
+//			},
+//		},
+//	}
+//
+//	//addr, err := c.findLeaderFromCache(key)
+//	//if err != nil {
+//	//	return err
+//	//}
+//	//var client *rpc.Client
+//	//var retries int
+//	//for retries < maxFindLeaderRetries {
+//	//	client, err = rpc.DialHTTP("tcp", addr)
+//	//	if err != nil {
+//	//		return err
+//	//	}
+//	//	err = client.Call("Cohort.ProcessCommands", cmd, &response)
+//	//	if response.Phase != common.NotLeader{
+//	//		break
+//	//	}
+//	//	retries++
+//	//	addr, err = c.updateLeaderTable(key)
+//	//	if err != nil {
+//	//		return err
+//	//	}
+//	//}
+	//return err
 }
 
 // Delete deletes the given key.
 func (c *Coordinator) Delete(key string) error {
-
-	c.log.Infof("Processing Delete request %s", key)
-	var response raftpb.RPCResponse
-	cmd := &raftpb.RaftCommand{
-		Commands: []*raftpb.Command{
-			{
-				Method: common.DEL,
-				Key:    key,
-			},
-		},
-	}
-
-	addr, err := c.findLeaderFromCache(key)
-	if err != nil {
-		return err
-	}
-	var client *rpc.Client
-	var retries int
-	for retries < maxFindLeaderRetries {
-		client, err = rpc.DialHTTP("tcp", addr)
-		if err != nil {
-			return err
-		}
-		err = client.Call("Cohort.ProcessCommands", cmd, &response)
-		if response.Phase != common.NotLeader{
-			break
-		}
-		retries++
-		addr, err = c.updateLeaderTable(key)
-		if err != nil {
-			return err
-		}
-	}
-	return err
-
+	return nil
+//	c.log.Infof("Processing Delete request %s", key)
+//	var response raftpb.RPCResponse
+//	cmd := &raftpb.RaftCommand{
+//		Commands: []*raftpb.Command{
+//			{
+//				Method: common.DEL,
+//				Key:    key,
+//			},
+//		},
+//	}
+//
+//	addr, err := c.findLeaderFromCache(key)
+//	if err != nil {
+//		return err
+//	}
+//	var client *rpc.Client
+//	var retries int
+//	for retries < maxFindLeaderRetries {
+//		client, err = rpc.DialHTTP("tcp", addr)
+//		if err != nil {
+//			return err
+//		}
+//		err = client.Call("Cohort.ProcessCommands", cmd, &response)
+//		if response.Phase != common.NotLeader{
+//			break
+//		}
+//		retries++
+//		addr, err = c.updateLeaderTable(key)
+//		if err != nil {
+//			return err
+//		}
+//	}
+//	return err
+//
 }
 
 func isReadOnly(ops []*raftpb.Command) bool {

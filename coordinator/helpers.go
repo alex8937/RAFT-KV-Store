@@ -1,7 +1,6 @@
 package coordinator
 
 import (
-	"errors"
 	"fmt"
 	"net/rpc"
 
@@ -41,7 +40,7 @@ func (c *Coordinator) Leader(address string) (string, error) {
 	return response.Addr, err
 }
 
-func (c *Coordinator) updateLeaderTable(key string) (string, error) {
+func (c *Coordinator) updateLeaderTable(key string) error {
 	// make rpc calls to get the leader
 	shardID := c.GetShardID(key)
 	nodes := c.ShardToPeers[shardID]
@@ -50,56 +49,55 @@ func (c *Coordinator) updateLeaderTable(key string) (string, error) {
 		if err == nil && leader != "" {
 			c.log.Infof("Update leader table: Shard %d -> %s", shardID, leader)
 			c.shardLeaderTable[shardID] = leader
-			return leader, nil
+			return nil
 		}
 	}
-	return "", fmt.Errorf("shard %d is not reachable", shardID)
+	return fmt.Errorf("shard %d is not reachable", shardID)
 }
 
-func (c *Coordinator) findLeaderFromCache(key string) (addr string, err error) {
+func (c *Coordinator) findLeaderFromCache(key string) (addr string, ok bool) {
 	shardID := c.GetShardID(key)
-	addr, ok := c.shardLeaderTable[shardID]
-	if !ok {
-		addr, err := c.updateLeaderTable(key)
-		return addr, err
+	addr, ok = c.shardLeaderTable[shardID]
+	if ok {
+		c.log.Infof("Fetch leader table: Shard %d -> %s", shardID, addr)
 	}
-	c.log.Infof("Fetch leader table: Shard %d -> %s", shardID, addr)
-	return addr, nil
+	return addr, ok
 }
 
 // SendMessageToShard sends prepare message to a shard. The return value
 // indicates if the shard successfully performed the operation.
 func (c *Coordinator) SendMessageToShard(ops *raftpb.ShardOps) ([]*raftpb.Command, error) {
-	var response raftpb.RPCResponse
-
-	// read leader from cache
-	addr, err := c.findLeaderFromCache(ops.MasterKey)
-	if err != nil {
-		return nil, err
-	}
-	var client *rpc.Client
-	var retries int
-	for retries < maxFindLeaderRetries {
-		client, err = rpc.DialHTTP("tcp", addr)
-		if err != nil {
-			return nil, err
-		}
-		err = client.Call("Cohort.ProcessTransactionMessages", ops, &response)
-		// if not non-leader error, break
-		if response.Phase != common.NotLeader {
-			break
-		}
-		retries++
-		// otherwise update the table
-		addr, err = c.updateLeaderTable(ops.MasterKey)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	success := response.Phase == (common.Prepared) || response.Phase == (common.Committed) || response.Phase == (common.Aborted)
-	if success {
-		return response.Commands, nil
-	}
-	return response.Commands, errors.New(response.Phase)
+//	var response raftpb.RPCResponse
+//
+//	// read leader from cache
+//	addr, err := c.findLeaderFromCache(ops.MasterKey)
+//	if err != nil {
+//		return nil, err
+//	}
+//	var client *rpc.Client
+//	var retries int
+//	for retries < maxFindLeaderRetries {
+//		client, err = rpc.DialHTTP("tcp", addr)
+//		if err != nil {
+//			return nil, err
+//		}
+//		err = client.Call("Cohort.ProcessTransactionMessages", ops, &response)
+//		// if not non-leader error, break
+//		if response.Phase != common.NotLeader {
+//			break
+//		}
+//		retries++
+//		// otherwise update the table
+//		c.updateLeaderTable(ops.MasterKey)
+//		if err != nil {
+//			return nil, err
+//		}
+//	}
+//
+//	success := response.Phase == (common.Prepared) || response.Phase == (common.Committed) || response.Phase == (common.Aborted)
+//	if success {
+//		return response.Commands, nil
+//	}
+//	return response.Commands, errors.New(response.Phase)
+	return nil, nil
 }

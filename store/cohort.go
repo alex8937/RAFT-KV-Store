@@ -61,6 +61,8 @@ func (c *Cohort) ProcessCommands(raftCommand *raftpb.RaftCommand, reply *raftpb.
 	switch command.Method {
 	case common.GET:
 		if !c.isLeader() {
+			c.store.log.Info(common.NotLeader, c.store.rpcAddress,
+				"leader is", c.store.raft.Leader())
 			return common.NotLeaderError
 		}
 		if val, ok, err := c.store.kv.Get(command.Key); ok && err == nil {
@@ -197,7 +199,7 @@ func (c *Cohort) ProcessReadOnly(ops *raftpb.ShardOps, reply *raftpb.RPCResponse
 }
 
 func (c *Cohort) isLeader() bool {
-	return c.store.raft.State() != raft.Leader
+	return c.store.raft.State() == raft.Leader
 }
 
 // ProcessJoin processes join message.
