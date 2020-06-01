@@ -99,8 +99,8 @@ func (c *Cohort) ProcessCommands(raftCommand *raftpb.RaftCommand, reply *raftpb.
 	}
 
 	resp, ok := applyFuture.Response().(*FSMApplyResponse)
+	*reply = resp.reply
 	if ok && resp.err != nil {
-		*reply = resp.reply
 		return resp.err
 	}
 
@@ -141,10 +141,6 @@ func (c *Cohort) ProcessTransactionMessages(ops *raftpb.ShardOps, reply *raftpb.
 	case common.Commit:
 		if c.opsMap[ops.Txid].Phase != common.Prepared {
 			// this should never happen
-			*reply = raftpb.RPCResponse{
-				Status: -1,
-				Phase:  common.Invalid,
-			}
 			return errors.New("invalid state")
 		}
 
@@ -186,10 +182,6 @@ func (c *Cohort) ProcessTransactionMessages(ops *raftpb.ShardOps, reply *raftpb.
 func (c *Cohort) ProcessReadOnly(ops *raftpb.ShardOps, reply *raftpb.RPCResponse) error {
 	m, err := c.store.kv.MGet(ops.Cmds.Commands)
 	if err != nil {
-		*reply = raftpb.RPCResponse{
-			Status: -1,
-			Phase:  common.NotPrepared,
-		}
 		return err
 	}
 	var res []*raftpb.Command
