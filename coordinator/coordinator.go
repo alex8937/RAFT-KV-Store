@@ -36,7 +36,7 @@ type Coordinator struct {
 }
 
 // NewCoordinator initialises the new coordinator instance
-func NewCoordinator(logger *log.Logger, nodeID, raftDir, raftAddress string, enableSingle bool) *Coordinator {
+func NewCoordinator(logger *log.Logger, nodeID, raftDir, raftAddress string, enableSingle bool, shardsInfo *config.ShardsConfig) *Coordinator {
 
 	if nodeID == "" {
 		nodeID = "node-" + common.RandNodeID(common.NodeIDLen)
@@ -48,10 +48,6 @@ func NewCoordinator(logger *log.Logger, nodeID, raftDir, raftAddress string, ena
 	log.Infof("Preparing node-%s with persistent directory %s, raftAddress %s", nodeID, raftDir, raftAddress)
 	os.MkdirAll(raftDir, 0700)
 
-	shardsInfo, err := config.GetShards()
-	if err != nil {
-		log.Fatal(err)
-	}
 	shardToPeers := make(map[int64][]string)
 	for i, shard := range shardsInfo.Shards {
 		shardToPeers[int64(i)] = append(shardToPeers[int64(i)], shard...)

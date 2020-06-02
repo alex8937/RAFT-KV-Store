@@ -1,0 +1,49 @@
+{
+  "coordinators": [
+    {
+      "node" : "node-coord-1",
+      "listen": "localhost:41000",
+      "raft": "localhost:42000"
+    }
+  ],
+  "shards" : [
+    [
+      {
+        "node" : "node-shard-1-1",
+        "listen": "localhost:47000",
+        "raft": "localhost:48000"
+      },
+      {
+        "node" : "node-shard-1-2",
+        "listen": "localhost:47001",
+        "raft": "localhost:48001",
+        "join": "localhost:47000"
+      },
+      {
+        "node" : "node-shard-1-3",
+        "listen": "localhost:47002",
+        "raft": "localhost:48002",
+        "join": "localhost:47000"
+      }
+    ],
+    [
+      {
+        "node" : "node-shard-2-1",
+        "listen": "localhost:47003",
+        "raft": "localhost:48003"
+      },
+      {
+        "node" : "node-shard-2-2",
+        "listen": "localhost:47004",
+        "raft": "localhost:48004",
+        "join": "localhost:47003"
+      },
+      {
+        "node" : "node-shard-2-3",
+        "listen": "localhost:47005",
+        "raft": "localhost:48005",
+        "join": "localhost:47003"
+      }
+    ]
+  ]
+}

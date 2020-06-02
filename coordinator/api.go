@@ -32,7 +32,7 @@ func (c *Coordinator) Get(key string) (int64, error) {
 		return 0, err
 	}
 
-	client, err := rpc.DialHTTP("tcp", addr)
+	client, err := rpc.DialHTTPPath("tcp", addr, rpc.DefaultRPCPath + addr)
 	if err != nil {
 		return 0, err
 	}
@@ -63,7 +63,7 @@ func (c *Coordinator) Set(key string, value int64) error {
 		return err
 	}
 
-	client, err := rpc.DialHTTP("tcp", addr)
+	client, err := rpc.DialHTTPPath("tcp", addr, rpc.DefaultRPCPath + addr)
 	if err != nil {
 		return fmt.Errorf("Unable to reach shard at :%s", addr)
 	}
@@ -92,7 +92,7 @@ func (c *Coordinator) Delete(key string) error {
 		return err
 	}
 
-	client, err := rpc.DialHTTP("tcp", addr)
+	client, err := rpc.DialHTTPPath("tcp", addr, rpc.DefaultRPCPath + addr)
 	if err != nil {
 		return err
 	}

@@ -37,8 +37,9 @@ func startCohort(store *Store, listenAddress string) {
 		store:  store,
 		opsMap: make(map[string]*raftpb.ShardOps),
 	}
-	rpc.Register(c)
-	rpc.HandleHTTP()
+	s := rpc.NewServer()
+	s.Register(c)
+	s.HandleHTTP(rpc.DefaultRPCPath + c.store.rpcAddress, rpc.DefaultDebugPath + c.store.rpcAddress)
 	listener, err := net.Listen("tcp", listenAddress)
 	if err != nil {
 		log.Fatal("listen error:", err)

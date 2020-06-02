@@ -16,9 +16,9 @@ type ShardsConfig struct {
 }
 
 // GetShards reads shard info from config file
-func GetShards() (*ShardsConfig, error) {
+func GetShards(filePath string) (*ShardsConfig, error) {
 	config := &ShardsConfig{}
-	data, err := ioutil.ReadFile(ShardConfigFilePath)
+	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}

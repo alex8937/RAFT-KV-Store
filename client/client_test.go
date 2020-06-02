@@ -9,16 +9,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func (c *raftKVClient) appendTestCmds(method, key string, value ...int64) {
+func (c *RaftKVClient) appendTestCmds(method, key string, value ...int64) {
 	switch method {
 	case common.SET:
-		c.txnCmds.Commands = append(c.txnCmds.Commands, &raftpb.Command{
+		c.TxnCmds.Commands = append(c.TxnCmds.Commands, &raftpb.Command{
 			Method: method,
 			Key:     key,
 			Value:   value[0],
 		})
 	case common.DEL:
-		c.txnCmds.Commands = append(c.txnCmds.Commands, &raftpb.Command{
+		c.TxnCmds.Commands = append(c.TxnCmds.Commands, &raftpb.Command{
 			Method: method,
 			Key:     key,
 		})
@@ -29,7 +29,7 @@ func TestClient(t *testing.T) {
 	c := NewRaftKVClient("localhost:20000")
 
 	// set a 5, set a 3, set b 4, del a => set b 4
-	c.txnCmds = &raftpb.RaftCommand{}
+	c.TxnCmds = &raftpb.RaftCommand{}
 	c.appendTestCmds(common.SET, "a", 5)
 	c.appendTestCmds(common.SET, "a", 3)
 	c.appendTestCmds(common.SET, "b", 4)
@@ -38,21 +38,21 @@ func TestClient(t *testing.T) {
 	expectedCmds := &raftpb.RaftCommand{
 		Commands: []*raftpb.Command{{Method: common.SET, Key: "b", Value: 4}},
 	}
-	assert.Truef(t, cmp.Equal(expectedCmds, c.txnCmds), "Expected %v but got %v", expectedCmds, c.txnCmds)
+	assert.Truef(t, cmp.Equal(expectedCmds, c.TxnCmds), "Expected %v but got %v", expectedCmds, c.TxnCmds)
 
 
 	// set a 5, set a 3, del a => no effect
-	c.txnCmds = &raftpb.RaftCommand{}
+	c.TxnCmds = &raftpb.RaftCommand{}
 	c.appendTestCmds(common.SET, "a", 5)
 	c.appendTestCmds(common.SET, "a", 3)
 	c.appendTestCmds(common.DEL, "a")
 	c.OptimizeTxnCommands()
 	expectedCmds = &raftpb.RaftCommand{}
-	assert.Truef(t, cmp.Equal(expectedCmds, c.txnCmds), "Expected %v but got %v", expectedCmds, c.txnCmds)
+	assert.Truef(t, cmp.Equal(expectedCmds, c.TxnCmds), "Expected %v but got %v", expectedCmds, c.TxnCmds)
 
 
 	// set a 5, set a 10, del b => set a 10, del b
-	c.txnCmds = &raftpb.RaftCommand{}
+	c.TxnCmds = &raftpb.RaftCommand{}
 	c.appendTestCmds(common.SET, "a", 5)
 	c.appendTestCmds(common.SET, "a", 10)
 	c.appendTestCmds(common.DEL, "b")
@@ -63,10 +63,10 @@ func TestClient(t *testing.T) {
 			{Method: common.DEL, Key: "b"},
 		},
 	}
-	assert.Truef(t, cmp.Equal(expectedCmds, c.txnCmds), "Expected %v but got %v", expectedCmds, c.txnCmds)
+	assert.Truef(t, cmp.Equal(expectedCmds, c.TxnCmds), "Expected %v but got %v", expectedCmds, c.TxnCmds)
 
 	// del a, set a 10, set b 10, del b => del a, set a 10
-	c.txnCmds = &raftpb.RaftCommand{}
+	c.TxnCmds = &raftpb.RaftCommand{}
 	c.appendTestCmds(common.DEL, "a")
 	c.appendTestCmds(common.SET, "a", 10)
 	c.appendTestCmds(common.SET, "b", 10)
@@ -78,11 +78,11 @@ func TestClient(t *testing.T) {
 			{Method: common.SET, Key: "a", Value: 10},
 		},
 	}
-	assert.Truef(t, cmp.Equal(expectedCmds, c.txnCmds), "Expected %v but got %v", expectedCmds, c.txnCmds)
+	assert.Truef(t, cmp.Equal(expectedCmds, c.TxnCmds), "Expected %v but got %v", expectedCmds, c.TxnCmds)
 
 
 	// del a, del b, set a 5, set b 6, set b 15, del c => del a, del b, set a 5, set b 15, del c
-	c.txnCmds = &raftpb.RaftCommand{}
+	c.TxnCmds = &raftpb.RaftCommand{}
 	c.appendTestCmds(common.DEL, "a")
 	c.appendTestCmds(common.DEL, "b")
 	c.appendTestCmds(common.SET, "a", 5)
@@ -99,11 +99,11 @@ func TestClient(t *testing.T) {
 			{Method: common.DEL, Key: "c"},
 		},
 	}
-	assert.Truef(t, cmp.Equal(expectedCmds, c.txnCmds), "Expected %v but got %v", expectedCmds, c.txnCmds)
+	assert.Truef(t, cmp.Equal(expectedCmds, c.TxnCmds), "Expected %v but got %v", expectedCmds, c.TxnCmds)
 
 
 	// del a => del a
-	c.txnCmds = &raftpb.RaftCommand{}
+	c.TxnCmds = &raftpb.RaftCommand{}
 	c.appendTestCmds(common.DEL, "a")
 	c.OptimizeTxnCommands()
 	expectedCmds = &raftpb.RaftCommand{
@@ -111,11 +111,11 @@ func TestClient(t *testing.T) {
 			{Method: common.DEL, Key: "a"},
 		},
 	}
-	assert.Truef(t, cmp.Equal(expectedCmds, c.txnCmds), "Expected %v but got %v", expectedCmds, c.txnCmds)
+	assert.Truef(t, cmp.Equal(expectedCmds, c.TxnCmds), "Expected %v but got %v", expectedCmds, c.TxnCmds)
 
 
 	// set a 5, set a 20, set a 25, set b 30 => set a 25, set b 30
-	c.txnCmds = &raftpb.RaftCommand{}
+	c.TxnCmds = &raftpb.RaftCommand{}
 	c.appendTestCmds(common.SET, "a", 5)
 	c.appendTestCmds(common.SET, "a", 20)
 	c.appendTestCmds(common.SET, "a", 25)
@@ -127,32 +127,9 @@ func TestClient(t *testing.T) {
 			{Method: common.SET, Key: "b", Value: 30},
 		},
 	}
-	assert.Truef(t, cmp.Equal(expectedCmds, c.txnCmds), "Expected %v but got %v", expectedCmds, c.txnCmds)
+	assert.Truef(t, cmp.Equal(expectedCmds, c.TxnCmds), "Expected %v but got %v", expectedCmds, c.TxnCmds)
 
 }
 
-//
-//func TestMultiClients(t *testing.T) {
-//	var clients []*raftKVClient
-//	for i := 0; i < 15; i++ {
-//		clients = append(clients, NewRaftKVClient(":17000"))
-//		clients[i].txnCmds = &raftpb.RaftCommand{
-//			Commands: []*raftpb.Command{
-//				{Method: common.SET, Key: "test3", Value: int64(i)},
-//				{Method: common.SET, Key: "test4", Value: int64(-i)},
-//			},
-//			IsTxn: true,
-//		}
-//	}
-//	var wg sync.WaitGroup
-//	for _, c := range clients {
-//		wg.Add(1)
-//		go func(c *raftKVClient) {
-//			defer wg.Done()
-//			res, err := c.Transaction()
-//			fmt.Println(res, err, c.txnCmds)
-//		}(c)
-//	}
-//	wg.Wait()
-//}
+
 

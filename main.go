@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/raft-kv-store/config"
 	"os"
 	"os/signal"
 	"path"
@@ -75,7 +76,11 @@ func main() {
 	log := logger.WithField("component", "main")
 
 	if isCoordinator {
-		c := coordinator.NewCoordinator(logger, nodeID, raftDir, raftAddress, joinHTTPAddress == "")
+		shardsInfo, err := config.GetShards(config.ShardConfigFilePath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		c := coordinator.NewCoordinator(logger, nodeID, raftDir, raftAddress, joinHTTPAddress == "", shardsInfo)
 		h := httpd.NewService(logger, listenAddress, c)
 		h.Start(joinHTTPAddress)
 	} else {

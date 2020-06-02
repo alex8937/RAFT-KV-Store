@@ -32,7 +32,7 @@ func (c *Coordinator) Leader(address string) (string, error) {
 		},
 	}
 
-	client, err := rpc.DialHTTP("tcp", address)
+	client, err := rpc.DialHTTPPath("tcp", address, rpc.DefaultRPCPath + address)
 	if err != nil {
 		return "", err
 	}
@@ -71,7 +71,7 @@ func (c *Coordinator) SendMessageToShard(ops *raftpb.ShardOps) ([]*raftpb.Comman
 		return nil, err
 	}
 	// TODO: Add retries, time out handled by library.
-	client, err := rpc.DialHTTP("tcp", addr)
+	client, err := rpc.DialHTTPPath("tcp", addr, rpc.DefaultRPCPath + addr)
 	if err != nil {
 		c.log.Error(err)
 		return nil, err

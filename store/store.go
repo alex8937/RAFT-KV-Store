@@ -88,7 +88,7 @@ func (s *Store) Start(joinHTTPAddress, id string) {
 	var response raftpb.RPCResponse
 	msg := &raftpb.JoinMsg{RaftAddress: s.RaftAddress, ID: id}
 
-	client, err := rpc.DialHTTP("tcp", joinHTTPAddress)
+	client, err := rpc.DialHTTPPath("tcp", joinHTTPAddress, rpc.DefaultRPCPath + joinHTTPAddress)
 	if err != nil {
 		s.log.Fatalf("Unable to reach leader: %s", err)
 	}
