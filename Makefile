@@ -19,6 +19,7 @@ proto:
 	protoc -I=. --go_out=. raftpb/raft.proto
 
 cluster: cluster-clean
+	rm -rf node*
 	@docker network create raft-net  --subnet 10.10.10.0/24 || true
 	mkdir -p node0 node1 node2 client
 	docker run -d -e BOOTSTRAP_LEADER=yes -p 17000:17000 -v ${PWD}/node0:/pv/  --rm --net raft-net --hostname node0 --name node0 supriyapremkumar/kv:v0.1
@@ -33,3 +34,6 @@ cluster-clean: clean
 clean:
 	rm -rf node*
 	rm -rf cohort*
+
+client:
+	docker exec -it client bash

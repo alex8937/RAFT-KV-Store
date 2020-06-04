@@ -7,7 +7,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/raft-kv-store/common"
@@ -203,42 +202,4 @@ func TestMultiXfer(t *testing.T) {
 	}
 	wg.Wait()
 	log.Println(c.Get("y"))
-}
-
-//=== RUN   TestGetLatency
-//1 clients, 0.26, 0.45, 0.64 ms
-//5 clients, 0.27, 0.48, 0.80 ms
-//10 clients, 0.28, 0.60, 0.99 ms
-//20 clients, 0.26, 0.64, 1.10 ms
-//50 clients, 0.28, 0.84, 1.83 ms
-//100 clients, 0.23, 447.72, 1924.32 ms
-//200 clients, 0.34, 865.25, 2011.97 ms
-//--- PASS: TestGetLatency (94.47s)
-
-func TestGetLatency(t *testing.T) {
-	for _, num := range []int{5} {
-		var clients []*raftKVClient
-		for i := 0; i < num; i++ {
-			clients = append(clients, NewRaftKVClient(coordAddr))
-		}
-		var wg sync.WaitGroup
-		for i, c := range clients {
-			wg.Add(1)
-			go func(c *raftKVClient, k int) {
-				defer wg.Done()
-				key := strconv.Itoa(k)
-				expStart := time.Now()
-				for time.Since(expStart) < 5*time.Second {
-					start := time.Now()
-					err := c.Get(key)
-					if err == nil || err.Error() == fmt.Sprintf("Key=%s does not exist", key) {
-						fmt.Println(int(time.Since(start) / time.Microsecond))
-					} else {
-						fmt.Println(err)
-					}
-				}
-			}(c, i)
-		}
-		wg.Wait()
-	}
 }
