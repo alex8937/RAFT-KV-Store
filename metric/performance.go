@@ -3,8 +3,6 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
-	"github.com/raft-kv-store/common"
-	"github.com/raft-kv-store/raftpb"
 	"hash/fnv"
 	"log"
 	"os"
@@ -13,6 +11,8 @@ import (
 	"time"
 
 	"github.com/raft-kv-store/client"
+	"github.com/raft-kv-store/common"
+	"github.com/raft-kv-store/raftpb"
 	flag "github.com/spf13/pflag"
 )
 
