@@ -243,10 +243,9 @@ func main() {
 	} else {
 		coordAddr = localCoordAddr
 	}
-	//TestGetLatency(getCSV)
-	//TestSetNoConflictLatency(setNoConflictCSV)
-	//for _, i := range []int{2, 5, 10} {
-	//	TestSetConflictLatency(setConflictCSV, i)
-	//}
-	TestTxnConflictLatency(txnCSV, 0, false)
+	TestGetLatency(getCSV)
+	for _, i := range []int{0, 2, 5, 10} {
+		TestSetLatency(setCSV, i)
+	}
+	TestTxnConflictLatency(txnCSV, 0, true)
 }
